@@ -1,0 +1,64 @@
+html, body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+}
+
+#gantt_here {
+  width:100%;
+  height:100%;
+}
+
+.gantt_grid_scale .gantt_grid_head_cell,
+.gantt_task .gantt_task_scale .gantt_scale_cell {
+  font-weight: bold;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.resource_marker{
+  text-align: center;
+}
+.resource_marker div{
+  width: 28px;
+  height: 28px;
+  line-height: 29px;
+  display: inline-block;
+  border-radius: 15px;
+  color: #FFF;
+  margin: 3px;
+}
+
+.gantt_task_cell.week_end {
+  background-color: #EFF5FD;
+}
+.gantt_grid_scale .gantt_grid_head_cell,
+.gantt_task .gantt_task_scale .gantt_scale_cell {
+  font-weight: bold;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.resource_marker{
+  text-align: center;
+}
+.resource_marker div{
+  width: 28px;
+  height: 28px;
+  line-height: 29px;
+  display: inline-block;
+  border-radius: 15px;
+  color: #FFF;
+  margin: 3px;
+}
+.resource_marker.workday_ok div {
+  background: #51c185;
+}
+
+.resource_marker.workday_over div{
+  //background: #ff8686;
+  background: #51c185;
+}
+.red {
+  background: red !important;
+}
