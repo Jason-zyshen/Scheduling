@@ -1,6 +1,6 @@
 import os
 import json
-from utility.proto_parser import parse_json
+from utils.proto_parser import parse_json
 from google.protobuf.json_format import MessageToDict
 
 

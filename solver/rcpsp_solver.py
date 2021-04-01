@@ -2,7 +2,8 @@ import os
 import time
 from collections import defaultdict
 from ortools.sat.python import cp_model
-from utility.proto_parser import parse_json
+from utils.proto_parser import parse_json
+from utils.dict2obj import json2obj
 
 
 class VariableContainer:
@@ -44,7 +45,8 @@ class VariableContainer:
     def print_info(self):
         """Print problem info."""
 
-        suffix = '/Max delay' if self.order_list[0].is_rcpsp_max else ''
+        # suffix = '/Max delay' if self.order_list[0].is_rcpsp_max else ''
+        suffix = ''
 
         res_num = len(self.resources_list)
         task_num = sum([len(order.tasks) for order in self.order_list])
@@ -57,21 +59,21 @@ class VariableContainer:
         problem.horizon = problem.deadline
         if problem.horizon == -1:  # Naive computation.
             problem.horizon = sum(max(r.duration for r in t.recipes) for t in problem.tasks)
-            if problem.is_rcpsp_max:
-                for t in problem.tasks:
-                    for sd in t.successor_delays:
-                        for rd in sd.recipe_delays:
-                            for d in rd.min_delays:
-                                problem.horizon += abs(d)
+            # if problem.is_rcpsp_max:
+            #     for t in problem.tasks:
+            #         for sd in t.successor_delays:
+            #             for rd in sd.recipe_delays:
+            #                 for d in rd.min_delays:
+            #                     problem.horizon += abs(d)
         # print('  - horizon = %i' % problem.horizon)
 
-    def initialize_orders(self, order_list, all_resources):
-        self.order_list = order_list
-        self.resources_list = all_resources.resources
+    def initialize_orders(self, data):
+        self.order_list = data.orders
+        self.resources_list = data.resources
         self.order_num = len(self.order_list)
         self.print_info()
 
-        for o, order in enumerate(order_list):
+        for o, order in enumerate(self.order_list):
             self.task_starts[o] = {}
             self.task_ends[o] = {}
             self.duration[o] = {}
@@ -229,30 +231,30 @@ def parse_tasks(model, problem, order, variable, available_start):
     # Add precedences constraints.
     variable.order_end[o] = model.NewIntVar(0, problem.horizon, 'order_%i end' % o)
     variable.makespan[o] = variable.order_end[o] - variable.task_starts[o][0]
-    if problem.is_rcpsp_max:
-        for t, task in enumerate(problem.tasks):
-            if len(task.successors) == 0:  # last node
-                model.Add(variable.task_ends[o][t] <= variable.order_end[o])
-                continue
-            for s, successor, in enumerate(task.successors):
-                if len(task.successor_delays) == 0:  # first node
-                    break
-                delay_matrix = task.successor_delays[s]
-                for m1 in range(len(task.recipes)):
-                    e1 = variable.ends_per_task[o][t][m1]  # todo: use "starts_per_task" when running sample test_data
-                    p1 = variable.presences_per_task[o][t][m1]
-                    for m2 in range(len(problem.tasks[successor].recipes)):
-                        s2 = variable.starts_per_task[o][successor][m2]
-                        p2 = variable.presences_per_task[o][successor][m2]
-                        delay = delay_matrix.recipe_delays[m1].min_delays[m2]
-                        model.Add(e1 + delay <= s2).OnlyEnforceIf([p1, p2])
-    else:  # Normal dependencies (task ends before the start of successors).
-        for t, task in enumerate(problem.tasks):
-            if len(task.successors) == 0:  # last node
-                model.Add(variable.task_ends[o][t] <= variable.order_end[o])
-                continue
-            for n in task.successors:
-                model.Add(variable.task_ends[o][t] <= variable.task_starts[o][n])
+    # if problem.is_rcpsp_max:
+    #     for t, task in enumerate(problem.tasks):
+    #         if len(task.successors) == 0:  # last node
+    #             model.Add(variable.task_ends[o][t] <= variable.order_end[o])
+    #             continue
+    #         for s, successor, in enumerate(task.successors):
+    #             if len(task.successor_delays) == 0:  # first node
+    #                 break
+    #             delay_matrix = task.successor_delays[s]
+    #             for m1 in range(len(task.recipes)):
+    #                 e1 = variable.ends_per_task[o][t][m1]  # todo: use "starts_per_task" when running sample test_data
+    #                 p1 = variable.presences_per_task[o][t][m1]
+    #                 for m2 in range(len(problem.tasks[successor].recipes)):
+    #                     s2 = variable.starts_per_task[o][successor][m2]
+    #                     p2 = variable.presences_per_task[o][successor][m2]
+    #                     delay = delay_matrix.recipe_delays[m1].min_delays[m2]
+    #                     model.Add(e1 + delay <= s2).OnlyEnforceIf([p1, p2])
+    # else:  # Normal dependencies (task ends before the start of successors).
+    for t, task in enumerate(problem.tasks):
+        if len(task.successors) == 0:  # last node
+            model.Add(variable.task_ends[o][t] <= variable.order_end[o])
+            continue
+        for n in task.successors:
+            model.Add(variable.task_ends[o][t] <= variable.task_starts[o][n])
 
 
 def parse_resource(model, r, resource, variable):
@@ -321,13 +323,28 @@ def set_objective(model, variable, target, expect=None, res_id=None):
         print('Searching for minimum %s' % objective.Name())
 
 
-def solve_rcpsp(data_dir, obj_list=None, timeout=None, pre_result=None):
+def load_xwy():
+    """
+    DEPRECATED.
+    """
+    data_dir = 'test_data/xwy_test'
+    all_resources = parse_json('res.json', file_dir=data_dir, keys=['resources'])
+    order_list = [parse_json('order_%d.json' % o, file_dir=data_dir) for o in range(54)]
+
+    class Input():
+        def __init__(self, order_list, all_resources):
+            self.orders = order_list
+            self.resources = all_resources.resources
+
+    data = Input(order_list, all_resources)
+
+    return data
+
+
+def solve_rcpsp(input, obj_list=None, timeout=None, pre_result=None):
     """Parse and solve a given RCPSP problem in proto/json format."""
 
-    # Load test_data
-    file_num = len(os.listdir(data_dir))
-    all_resources = parse_json('res.json', file_dir=data_dir, keys=['resources'])
-    order_list = [parse_json('order_%d.json' % o, file_dir=data_dir) for o in range(file_num - 1)]
+    data = json2obj(input)
 
     # set available start time for tasks.
     available_start = {}  # todo: {order_id: {task_id: start_time}}
@@ -335,16 +352,15 @@ def solve_rcpsp(data_dir, obj_list=None, timeout=None, pre_result=None):
     # Initialize the model.
     model = cp_model.CpModel()
     variable = VariableContainer()
-    variable.initialize_orders(order_list, all_resources)
+    variable.initialize_orders(data)
     if pre_result:
         variable.pre_result = pre_result
 
     # Parse test_data to constraints.
-    for o, order in enumerate(order_list):
+    for o, order in enumerate(data.orders):
         parse_tasks(model, order, o, variable, available_start)
-    for r, resource in enumerate(all_resources.resources):
+    for r, resource in enumerate(data.resources):
         parse_resource(model, r, resource, variable)
-
 
 
     # Objective.
@@ -370,13 +386,11 @@ def solve_rcpsp(data_dir, obj_list=None, timeout=None, pre_result=None):
 
 
 def main():
-    data_dir = 'test_data/xwy_test'
-    # proto_file = 'testset_mm30/psp2.sch'
-    # parse_proto(proto_file, data_dir)
-
-    obj_list = [{'type': 'makespan', 'expect': None}]
-    result = solve_rcpsp(data_dir, obj_list, timeout=40)
+    # obj_list = [{'type': 'makespan', 'expect': None}]
+    result = solve_rcpsp(timeout=10)
 
 
 if __name__ == '__main__':
     main()
+
+
