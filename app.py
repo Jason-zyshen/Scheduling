@@ -37,7 +37,7 @@ def schedule():
     return json.dumps(message_dict, ensure_ascii=False)
 
 
-@app.route("/schedule/dti", methods=["POST"])
+@app.route("/dti", methods=["POST"])
 def dti():
     json_msg = request.get_data()
 
@@ -55,8 +55,7 @@ def dti():
         data = json.loads(json_msg)
         dti_parser = DateTimeIndexParser(data['start_date'], data['end_date'])
         dti_parser.update(data['start_hour'], data['work_duration'], data['week_mask'])
-        dti_parser.gen_json(data['result'])  # ToDo: Can not use gen_json without data_handler.
-        message_dict['result'] = True
+        message_dict['result'] = dti_parser.gen_json(data['result'])  # ToDo: Can not use gen_json without data_handler.
     except:
         print('Data Error!')
         pass

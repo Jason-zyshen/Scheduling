@@ -20,7 +20,7 @@ def check_row(row):
 
 
 # Load test_data set.
-input = 'data/asd_test.xlsx'
+input = 'projects/asd_test.xlsx'
 order = pd.read_excel(input, sheet_name='order')
 product = pd.read_excel(input, sheet_name='product')
 process = pd.read_excel(input, sheet_name='process')

@@ -13,7 +13,7 @@ def load_xwy():
     Load test data set for xwy project.
     :return: DataFrame for tasks and resources.
     """
-    file = 'data/xwy_test.xlsx'
+    file = 'xwy_test.xlsx'
     tasks_df = pd.read_excel(file, sheet_name='orders')
     resource_df = pd.read_excel(file, sheet_name='resources')
 
@@ -29,9 +29,15 @@ def post(data, server="http://127.0.0.1:5000", page='/schedule'):
     :return: dict.
     """
 
+    with open('data%s_input.json' % page, 'w') as f:
+        f.write(json.dumps(data))
+
     data = json.dumps(data)
     r = requests.post(server + page, data=data)
     result = json.loads(r.text)['result']
+
+    with open('data%s_output.json' % page, 'w') as f:
+        f.write(json.dumps(result))
 
     return result
 
@@ -49,12 +55,18 @@ def run():
 
     # Load data set.
     tasks_df, resource_df = load_xwy()
-    data = dti_parser.data_handler(tasks_df, resource_df)
+    input_data = dti_parser.data_handler(tasks_df, resource_df)
 
     # Solve problem.
-    # result = solve_rcpsp(json.loads(data), timeout=10)  # Use local solver.
-    data['result'] = post(data)  # Call remote solver
-    dti_parser.gen_json(data['result'])
+    output_data = post(input_data)  # Call remote solver
+    # result = solve_rcpsp(json.loads(input_data), timeout=10)  # Use local solver.
+
+    # Format result.
+    data = calendar
+    data['result'] = output_data
+    result = post(data, page='/dti')
+    with open('../preview/json/result.json', 'w') as f:
+        f.write(json.dumps(result))
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-import json
 import pandas as pd
 from utils.dict2obj import df2dict
 
@@ -107,8 +106,6 @@ class DateTimeIndexParser():
 
         # Covert dict to json.
         self.data = data
-        with open('data/input.json', 'w') as f:
-            f.write(json.dumps(data))
 
         # Save problem info to object.
         df = tasks_df[['order_id', 'task_id', 'task_name']]
@@ -127,10 +124,6 @@ class DateTimeIndexParser():
         :return:
         """
 
-        # Save output of algorithm.
-        with open('data/output.json', 'w') as f:
-            f.write(json.dumps(result))
-
         # Convert result to frontend format.
         self.output['today'] = str(self.start_datetime)
         self.output['data'] = list()
@@ -144,7 +137,7 @@ class DateTimeIndexParser():
             data['end_date'] = max([d['end'] for d in list(order.values())])
             data['duration'] = data['end_date'] - data['start_date']
             data['resource'] = None
-            data['deadline'] = str(self.output['ddl'][o-1])
+            data['deadline'] = ''  # str(self.output['ddl'][o-1])
             data['parent'] = 0
             self.output['data'].append(data)
 
@@ -152,7 +145,7 @@ class DateTimeIndexParser():
                 t = int(t)
                 data = dict()
                 data['id'] = o * 100 + t
-                data['text'] = self.output['task'][o-1][t]['task_name']
+                data['text'] = t  # self.output['task'][o-1][t]['task_name']
                 data['start_date'] = task['start']
                 data['end_date'] = task['end']
                 data['duration'] = task['duration']
@@ -166,8 +159,8 @@ class DateTimeIndexParser():
             data['end_date'] = str(self.step2dti(data['end_date'], task_end=True))
 
         # Save data to json file.
-        self.output.pop('ddl')
-        self.output.pop('task')
-        with open(path + 'result.json', 'w') as f:
-            f.write(json.dumps(self.output))
+        # self.output.pop('ddl')
+        # self.output.pop('task')
         print('\njson file generated, please check the browser.')
+
+        return self.output
