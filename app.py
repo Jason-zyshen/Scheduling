@@ -10,6 +10,16 @@ app = Flask(__name__)
 
 @app.route("/schedule", methods=["POST"])
 def schedule():
+    json_msg = request.get_data()
+
+    # Default return message.
+    message_dict = {'return_code': '200', 'result': False}
+
+    # Get data from json.
+    if json_msg is None:
+        message_dict['return_code'] = '5004'
+        message_dict['return_info'] = '请求参数为空'
+        return json.dumps(message_dict, ensure_ascii=False)
 
     # Clear last result.
     try:
@@ -17,19 +27,9 @@ def schedule():
     except:
         pass
 
-    # Default return message.
-    message_dict = {'return_code': '200', 'result': False}
-
-    # Get data from json.
-    if request.get_data() is None:
-        message_dict['return_code'] = '5004'
-        message_dict['return_info'] = '请求参数为空'
-        return json.dumps(message_dict, ensure_ascii=False)
-
-    data = request.get_data()
-
     # Call algorithm.
     try:
+        data = json_msg
         result = solve_rcpsp(data, timeout=10)
         message_dict['result'] = result
     except:
@@ -39,23 +39,23 @@ def schedule():
     return json.dumps(message_dict, ensure_ascii=False)
 
 
-@app.route("/dti2step", methods=["POST"])
+@app.route("/dtiparser", methods=["POST"])
 def dti():
+    json_msg = request.get_data()
 
     # Default return message.
     message_dict = {'return_code': '200', 'result': False}
 
     # Get data from json.
-    if request.get_data() is None:
+    if json_msg is None:
         message_dict['return_code'] = '5004'
         message_dict['return_info'] = '请求参数为空'
         return json.dumps(message_dict, ensure_ascii=False)
 
-    data = json.loads(request.get_data())
-
     # Call dti handler.
     try:
         # Initialize dit parser.
+        data = json.loads(json_msg)
         dti_parser = DateTimeIndexParser(data['start_date'], data['end_date'])
         dti_parser.update(data['start_hour'], data['work_duration'], data['week_mask'])
 

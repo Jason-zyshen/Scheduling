@@ -44,8 +44,8 @@ def run(offline=False):
 
     # Set problem calendar.
     start_date = '2021-02-21'
-    week_mask = "Mon Tue Wed Thu Fri Sat Sun"
-    end_date = str(tasks_df['deadline'].max())[:10]
+    week_mask = 'Mon Tue Wed Thu Fri Sat Sun'
+    end_date = '2020-01-01'
     dti_parser = DateTimeIndexParser(start_date, end_date)
     dti_parser.update(weekmask=week_mask)
     dti_parser.data_handler(tasks_df, resource_df)
