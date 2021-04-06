@@ -104,8 +104,10 @@ class DateTimeIndexParser():
 
         # Parse resources.
         data['resources'] = resource_df[['max_capacity', 'renewable']].to_dict(orient='records')
+
+        # Covert dict to json.
         self.data = data
-        with open('data/tmp.json', 'w') as f:
+        with open('data/input.json', 'w') as f:
             f.write(json.dumps(data))
 
         # Save problem info to object.
@@ -116,6 +118,8 @@ class DateTimeIndexParser():
         self.output['resourceData'] = resource_df.to_dict('records')
         self.output['timestep'] = 'm'
 
+        return data
+
     def gen_json(self, result, path='preview/json/'):
         """
         Convert result to json file.
@@ -123,6 +127,11 @@ class DateTimeIndexParser():
         :return:
         """
 
+        # Save output of algorithm.
+        with open('data/output.json', 'w') as f:
+            f.write(json.dumps(result))
+
+        # Convert result to frontend format.
         self.output['today'] = str(self.start_datetime)
         self.output['data'] = list()
         for o, order in zip(result.keys(), result.values()):
@@ -151,13 +160,14 @@ class DateTimeIndexParser():
                 data['parent'] = o
                 self.output['data'].append(data)
 
+        # Convert datetime index to real world datetime.
         for data in self.output['data']:
             data['start_date'] = str(self.step2dti(data['start_date']))
             data['end_date'] = str(self.step2dti(data['end_date'], task_end=True))
 
-        with open(path + 'index.json', 'w') as f:
-            self.output.pop('ddl')
-            self.output.pop('task')
+        # Save data to json file.
+        self.output.pop('ddl')
+        self.output.pop('task')
+        with open(path + 'result.json', 'w') as f:
             f.write(json.dumps(self.output))
-
         print('\njson file generated, please check the browser.')

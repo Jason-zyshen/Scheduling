@@ -20,45 +20,41 @@ def load_xwy():
     return tasks_df, resource_df
 
 
-def call_server():
+def post(data, server="http://127.0.0.1:5000", page='/schedule'):
     """
-    POST data to algorithm api and receive result from algorithm server.
-    :return: result: Dict
+    Post data to server and get response.
+    :param data: dict.
+    :param server:
+    :param page:
+    :return: dict.
     """
 
-    json_file = 'data/tmp.json'
-    myurl = "http://127.0.0.1:5000/schedule"
-
-    with open(json_file, 'r') as f:
-        data = json.dumps(json.loads(f.read()))
-
-    r = requests.post(myurl, data=data)
+    data = json.dumps(data)
+    r = requests.post(server + page, data=data)
     result = json.loads(r.text)['result']
 
     return result
 
 
-def run(offline=False):
+def run():
+    # Set calendar.
+    calendar = {'start_date': '2021-02-21',
+                'end_date': '2022-01-01',
+                'start_hour': '10:00',
+                'work_duration': 8,
+                'week_mask': 'Mon Tue Wed Thu Fri Sat Sun',
+                }
+    dti_parser = DateTimeIndexParser(calendar['start_date'], calendar['end_date'])
+    dti_parser.update(weekmask=calendar['week_mask'])
+
     # Load data set.
     tasks_df, resource_df = load_xwy()
-
-    # Set problem calendar.
-    start_date = '2021-02-21'
-    week_mask = 'Mon Tue Wed Thu Fri Sat Sun'
-    end_date = '2020-01-01'
-    dti_parser = DateTimeIndexParser(start_date, end_date)
-    dti_parser.update(weekmask=week_mask)
-    dti_parser.data_handler(tasks_df, resource_df)
+    data = dti_parser.data_handler(tasks_df, resource_df)
 
     # Solve problem.
-    if offline:
-        data = json.dumps(dti_parser.data)
-        result = solve_rcpsp(data, timeout=10)
-    else:
-        result = call_server()
-
-    # Update data to frontend.
-    dti_parser.gen_json(result)
+    # result = solve_rcpsp(json.loads(data), timeout=10)  # Use local solver.
+    data['result'] = post(data)  # Call remote solver
+    dti_parser.gen_json(data['result'])
 
 
 if __name__ == "__main__":

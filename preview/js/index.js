@@ -2,7 +2,7 @@ window.onload = () => {
     let taskData2
     let originTaskData
     let resourceDataList = [];
-    const url = 'json/index.json';
+    const url = 'json/result.json';
     const request = new XMLHttpRequest();
     request.open('get', url);
     request.send(null);
