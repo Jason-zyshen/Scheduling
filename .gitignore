@@ -1,3 +1,6 @@
 archieve/
 .idea/
 projects/
+__pycache__
+.history
+.vscode
